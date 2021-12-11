@@ -84,8 +84,6 @@ namespace DiscordBot
                 return;
             }
 
-            logger.LogInformation("Message Received: " + e.Message.Content);
-
             // When the user wants a meme by a specific ID
             if (e.Message.Content.StartsWith("!meme get id", StringComparison.OrdinalIgnoreCase))
             {
@@ -211,10 +209,13 @@ namespace DiscordBot
                 }
             }
 
-            // Discord permits messages upto 2000 characters. 
-            if (allMemes.Length > 1900)
+            if (allMemes.Length > 1900) // Discord permits messages upto 2000 characters. 
             {
                 return allMemes.Substring(0,1900) + "\n\n **WARNING: Maximum Discord message length 2000 reached, output truncated!**";
+            }
+            if (allMemes.Length == 0) // If nothing was found return a hint.
+            {
+                return "None found.";
             }
             return allMemes;
         }
