@@ -7,7 +7,7 @@ The architecture is a containerized .Net Core worker application.  In my impleme
 Credits to Niels Swimberghe for the very good .Net Core / Container / Azure 'how-to' on:
 https://swimburger.net/blog/azure/how-to-create-a-discord-bot-using-the-dotnet-worker-template-and-host-it-on-azure-container-instances
 
-## Deployment Notes
+## Container Deployment Notes
 
 Login to the ACR and build the image locally then push it up using two commands:
 ```
