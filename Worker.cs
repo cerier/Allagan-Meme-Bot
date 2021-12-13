@@ -85,8 +85,6 @@ namespace DiscordBot
                 return;
             }
 
-            //logger.LogInformation(e.Message.Content + " attachments: " + e.Message.Attachments.FirstOrDefault().Url);
-
             // When the user wants a meme by a specific ID
             if (e.Message.Content.StartsWith("!meme get id", StringComparison.OrdinalIgnoreCase))
             {
@@ -214,84 +212,10 @@ namespace DiscordBot
             return "Not sure if the auto tag was inserted (does the code not handle a new SP return value?)";
         }
 
-        // Inserts a iamge meme into storage.  The back-end logic is start enough to not insert duplicates.
-        // The function returns the 'conclusion' (whether the meme was inserted, was already present)
-        /*private static string InsertImageMeme(string imageUrl, string author)
-        {
-            byte[] imageBytes;
-            try
-            {
-                using (var webClient = new WebClient())
-                {
-                    imageBytes = webClient.DownloadData(imageUrl);
-                }
-            } 
-            catch (Exception ex)
-            {
-                return "Failed to download the image: " + imageUrl + " for reason: " + ex.Message;
-            }
-            if (imageBytes.Length > 0)
-            {
-                return "The image is somehow empty: " + imageUrl;
-            }
-
-            int wasInserted = -1, memeId = -1;
-            using (SqlConnection con = new SqlConnection(connString))
-            {
-                string spName = "[dbo].[Insert_One_Image_Meme]";
-                using (SqlCommand cmd = new SqlCommand(spName))
-                {
-                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                    cmd.Parameters.Add(new SqlParameter("@MemeByteArray", imageBytes));
-                    cmd.Parameters.Add(new SqlParameter("@MemeAddedBy", author));
-                    cmd.Parameters.Add(new SqlParameter("@MemeAddedOn", DateTime.UtcNow));
-                    cmd.Connection = con;
-                    con.Open();
-
-                    using (SqlDataReader sdr = cmd.ExecuteReader())
-                    {
-                        while (sdr.Read())
-                        {
-                            wasInserted = Convert.ToInt32(sdr["MemeWasInserted"]);
-                            memeId = Convert.ToInt32(sdr["MemeId"]);
-                        }
-                    }
-                    con.Close();
-                }
-            }
-
-            if (wasInserted == 1)
-            {
-                return "New meme registered (ID " + memeId + ")";
-            }
-            if (wasInserted == 0)
-            {
-                return "The meme was already registered (ID " + memeId + ")";
-            }
-            return "Not sure if the meme was inserted (does the code not handle a new SP return value?)";
-        }*/
-
         // Inserts a meme into storage.  The back-end logic is start enough to not insert duplicates.
         // The function returns the 'conclusion' (whether the meme was inserted, was already present)
         private static string InsertMeme(string newMeme, string imageUrl, string author)
         {
-            // Fetch the image if one was included with the meme text. 
-            //byte[] imageBytes = Array.Empty<byte>();
-            //if (imageUrl.Length > 0)            
-            //{
-            //    try
-            //    {
-            //        using (var webClient = new WebClient())
-            //        {
-            //            imageBytes = webClient.DownloadData(imageUrl);
-            //        }
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        return "An image was attached, but failed to get:" + imageUrl + " for reason: " + ex.Message;
-            //    }
-            //}
-
             int wasInserted = -1, memeId = -1;
             using (SqlConnection con = new SqlConnection(connString))
             {
