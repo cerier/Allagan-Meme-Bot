@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
+using System.Net;
 
 /*
  * Discord Bot for storing & retrieving memes in a text format.
@@ -28,7 +29,7 @@ namespace DiscordBot
         private IConfiguration configuration;
         private DiscordClient discordClient;
 
-        private static string botVersion = "2021.12.11.4";
+        private static string botVersion = "2021.12.12.2";
         private static string connString;
 
         public Worker(ILogger<Worker> logger, IConfiguration configuration)
@@ -84,6 +85,8 @@ namespace DiscordBot
                 return;
             }
 
+            //logger.LogInformation(e.Message.Content + " attachments: " + e.Message.Attachments.FirstOrDefault().Url);
+
             // When the user wants a meme by a specific ID
             if (e.Message.Content.StartsWith("!meme get id", StringComparison.OrdinalIgnoreCase))
             {
@@ -100,15 +103,23 @@ namespace DiscordBot
                 logger.LogInformation("User fetched a meme");
             }
 
-            // when the user wants to add a meme
+            // when the user wants to add a text meme
             else if (e.Message.Content.StartsWith("!meme insert", StringComparison.OrdinalIgnoreCase) || e.Message.Content.StartsWith("!meme add", StringComparison.OrdinalIgnoreCase))
             {
                 string memeToInsert = e.Message.Content.Replace("!meme insert", "").Replace("!meme add", "").Trim();
-                await e.Message.RespondAsync(InsertMeme(memeToInsert, messageAuthor));
+
+                string imageUrl = "(none)";
+                try // Attempt to get the image URL from the message.  
+                {
+                    imageUrl = e.Message.Attachments.FirstOrDefault().Url.Trim();
+                }
+                catch (Exception) { }
+
+                await e.Message.RespondAsync(InsertMeme(memeToInsert, imageUrl, messageAuthor));
                 logger.LogInformation("User inserted a meme");
             }
 
-            // when a user wants to add an 'auto' tag.
+            // when a user wants to add an 'auto' tag to text.
             else if (e.Message.Content.StartsWith("!meme tag text", StringComparison.OrdinalIgnoreCase))
             {
                 Match findTextToTag = Regex.Match(e.Message.Content, @"(?<=text="").+?(?="")", RegexOptions.IgnoreCase);
@@ -144,7 +155,7 @@ namespace DiscordBot
             {
                 string helpInfo = "<Bleep, Bloop>. My purpose is to archive memes. Version " + botVersion + ", by @Alex B."
                                 + "\n\n**Adding and getting memes**"
-                                + "```!meme add <text>  --  Adds a meme to the archive. "
+                                + "```!meme add <text>  --  Adds a meme to the archive.  If an image is attached, it will be stored with the meme! "
                                 + "\n!meme get <text>  --  Searches memes (by the content AND tags!) and returns up to five.* "
                                 + "\n!meme get id <#>  --  Gets a specific meme if you know its ID*.```"
                                 + "* Please note, some text in ffxiv is 'custom' and can be displayed only in ffxiv.  Such text will be removed by this bot because Discord (and other programs) cannot show it."
@@ -203,10 +214,84 @@ namespace DiscordBot
             return "Not sure if the auto tag was inserted (does the code not handle a new SP return value?)";
         }
 
+        // Inserts a iamge meme into storage.  The back-end logic is start enough to not insert duplicates.
+        // The function returns the 'conclusion' (whether the meme was inserted, was already present)
+        /*private static string InsertImageMeme(string imageUrl, string author)
+        {
+            byte[] imageBytes;
+            try
+            {
+                using (var webClient = new WebClient())
+                {
+                    imageBytes = webClient.DownloadData(imageUrl);
+                }
+            } 
+            catch (Exception ex)
+            {
+                return "Failed to download the image: " + imageUrl + " for reason: " + ex.Message;
+            }
+            if (imageBytes.Length > 0)
+            {
+                return "The image is somehow empty: " + imageUrl;
+            }
+
+            int wasInserted = -1, memeId = -1;
+            using (SqlConnection con = new SqlConnection(connString))
+            {
+                string spName = "[dbo].[Insert_One_Image_Meme]";
+                using (SqlCommand cmd = new SqlCommand(spName))
+                {
+                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new SqlParameter("@MemeByteArray", imageBytes));
+                    cmd.Parameters.Add(new SqlParameter("@MemeAddedBy", author));
+                    cmd.Parameters.Add(new SqlParameter("@MemeAddedOn", DateTime.UtcNow));
+                    cmd.Connection = con;
+                    con.Open();
+
+                    using (SqlDataReader sdr = cmd.ExecuteReader())
+                    {
+                        while (sdr.Read())
+                        {
+                            wasInserted = Convert.ToInt32(sdr["MemeWasInserted"]);
+                            memeId = Convert.ToInt32(sdr["MemeId"]);
+                        }
+                    }
+                    con.Close();
+                }
+            }
+
+            if (wasInserted == 1)
+            {
+                return "New meme registered (ID " + memeId + ")";
+            }
+            if (wasInserted == 0)
+            {
+                return "The meme was already registered (ID " + memeId + ")";
+            }
+            return "Not sure if the meme was inserted (does the code not handle a new SP return value?)";
+        }*/
+
         // Inserts a meme into storage.  The back-end logic is start enough to not insert duplicates.
         // The function returns the 'conclusion' (whether the meme was inserted, was already present)
-        private static string InsertMeme(string newMeme, string author)
+        private static string InsertMeme(string newMeme, string imageUrl, string author)
         {
+            // Fetch the image if one was included with the meme text. 
+            //byte[] imageBytes = Array.Empty<byte>();
+            //if (imageUrl.Length > 0)            
+            //{
+            //    try
+            //    {
+            //        using (var webClient = new WebClient())
+            //        {
+            //            imageBytes = webClient.DownloadData(imageUrl);
+            //        }
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        return "An image was attached, but failed to get:" + imageUrl + " for reason: " + ex.Message;
+            //    }
+            //}
+
             int wasInserted = -1, memeId = -1;
             using (SqlConnection con = new SqlConnection(connString))
             {
@@ -215,6 +300,7 @@ namespace DiscordBot
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
                     cmd.Parameters.Add(new SqlParameter("@MemeText", CleanStringForDiscord(newMeme) ));
+                    cmd.Parameters.Add(new SqlParameter("@MemeImageUrl", imageUrl));
                     cmd.Parameters.Add(new SqlParameter("@MemeAddedBy", author));
                     cmd.Parameters.Add(new SqlParameter("@MemeAddedOn", DateTime.UtcNow));
                     cmd.Connection = con;
@@ -286,7 +372,8 @@ namespace DiscordBot
         private static string GetMeme(string searchText, int specificMemeId)
         {
             string allMemes = "";
-            string memeEntry, memeText, memeAddedBy, memeId, memeListOfTags;
+            string memeEntry, memeText, memeAddedBy, memeId, memeListOfTags, memeImageUrl;
+
             DateTime memeAddedOn; 
 
             using (SqlConnection con = new SqlConnection(connString))
@@ -305,6 +392,7 @@ namespace DiscordBot
                         {
                             memeId = sdr["MemeId"].ToString();
                             memeText = sdr["MemeText"].ToString();
+                            memeImageUrl = sdr["MemeImageUrl"].ToString();
                             memeAddedBy = sdr["MemeAddedBy"].ToString();
                             memeAddedOn = DateTime.Parse(sdr["MemeAddedOn"].ToString());
                             memeListOfTags = sdr["ListOfTags"].ToString();
@@ -312,9 +400,11 @@ namespace DiscordBot
                             // Build a nicely formatted output for this one meme and add to the list of returned memes.
                             string daysAgo = ( (int)Math.Floor( (DateTime.UtcNow - memeAddedOn).TotalDays )).ToString();
                             memeEntry = "```" // Adds a nice 'block' around the text. 
-                                      + memeText 
-                                      + "```" 
-                                      + "Tags: " + memeListOfTags  + "  |  Added "+daysAgo+" days ago by "+memeAddedBy+"  |  ID = "+memeId+"\n\n";
+                                      + memeText
+                                      + "```"
+                                      + "Tags: " + memeListOfTags + "  |  Added " + daysAgo + " days ago by " + memeAddedBy + "  |  ID = " + memeId 
+                                      + ( memeImageUrl.Length > 0 && memeImageUrl != "(none)" ? "  |  Attached image:\n" + memeImageUrl : "" ) 
+                                      + "\n\n";
                             allMemes += memeEntry;
                         }
                     }
