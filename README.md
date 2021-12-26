@@ -2,7 +2,7 @@
 
 It is a Discord bot that stores or retrieves text based on commands like '!meme'.  
 
-![Sample usage](Demo%20Screenshot.JPG)
+![Sample usage](Demo%20Screenshot.PNG)
 
 
 ## Architecture
