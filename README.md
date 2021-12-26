@@ -7,13 +7,13 @@ It is a Discord bot that stores or retrieves text based on commands like '!meme'
 
 ## Architecture
 
-The architecture is a containerized .Net 5 worker application.  In my implementation, the container is hosted in Azure Container Services and the back end is an Azure SQL Database.  
+The architecture is a containerized .Net 5 worker application.  In my implementation, the container is hosted in Azure Container Services and the back end is an Azure SQL Database.  It can also be hosted cheaply on Docker Desktop. 
 
 Credits to Niels Swimberghe for the very good .Net Core / Container / Azure 'how-to' on:
 https://swimburger.net/blog/azure/how-to-create-a-discord-bot-using-the-dotnet-worker-template-and-host-it-on-azure-container-instances
 
 
-## Container Deployment Notes
+## Container Deployment Notes (Azure)
 
 Login to the ACR and build the image locally then push it up using two commands:
 ```
@@ -46,3 +46,24 @@ az acr build -r <ACR NAME> -t <CONTAINER NAME>:latest .
 az container restart --name <CONTAINER NAME> --resource-group <RESOURCE GROUP>
 ```
 
+## Container Deployment Notes (Docker Desktop)
+
+Build image:
+```
+docker build -t discord-bot-image:latest .
+```
+
+Run image locally:
+```
+docker run -it discord-bot-image:latest -e DiscordBotToken="OTE4NjIxNzAxNjU3NDYwODM4.YbJ7IA.D7taiw2C65KS2sIn6OlZ_M1DhPg" BackendConnectionString="Server=192.168.0.200;Database=memes;User Id=AllaganMemeDiscordBot;Password=qdlvyacmedridjkdnac39Wrrdsmdfg;"
+```
+
+Save image (for copy elsewhere): 
+```
+docker save discord-bot-image:latest -o discord-bot-image.tar
+```
+
+Load image (when copied): 
+```
+docker load -i .\discord-bot-image.tar
+```
