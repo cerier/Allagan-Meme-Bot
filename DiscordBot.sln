@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.31729.503
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiscordBot", "DiscordBot.csproj", "{6A99CF63-83FB-4F65-A0A8-6BFA29909247}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{5A9DB772-AD38-4BFA-93B8-9F6E85943BB2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
