@@ -55,7 +55,7 @@ docker build -t discord-bot-image:latest .
 
 Run image locally:
 ```
-docker run -it discord-bot-image:latest -e DiscordBotToken="(token)" BackendConnectionString="Server=192.168.0.200;Database=memes;User Id=(username);Password=(password);"
+docker run -it discord-bot-image:latest -e DiscordBotToken="(token)" BackendConnectionString="(connection string)"
 ```
 
 Save image (for copy elsewhere): 
