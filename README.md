@@ -4,6 +4,9 @@ It is a Discord bot that stores or retrieves text based on commands like '!meme'
 
 ![Sample usage](Demo%20Screenshot.PNG)
 
+Invite it to your Discord server using https://discord.com/api/oauth2/authorize?client_id=918621701657460838&permissions=2048&scope=bot.
+
+Memes are isolated by server.  It is not possible to retrieve memes added by users in other servers. 
 
 ## Architecture
 
