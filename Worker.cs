@@ -29,7 +29,7 @@ namespace DiscordBot
         private IConfiguration configuration;
         private DiscordClient discordClient;
 
-        private static string botVersion = "2021.12.12.2";
+        private static string botVersion = "2022.04.24.4";
         private static string connString;
 
         public Worker(ILogger<Worker> logger, IConfiguration configuration)
@@ -80,6 +80,8 @@ namespace DiscordBot
         {
             // Make sure to ignore messages created by this bot (efficiency!)
             string messageAuthor = e.Author.Username.ToString();
+            string serverId = e.Guild.Id.ToString();
+
             if (messageAuthor == "Allagan Meme Bot")
             {
                 return;
@@ -89,7 +91,7 @@ namespace DiscordBot
             if (e.Message.Content.StartsWith("!meme get id", StringComparison.OrdinalIgnoreCase))
             {
                 int memeId = Convert.ToInt32(e.Message.Content.Replace("!meme get id", "").Trim());
-                await e.Message.RespondAsync(GetMeme("", memeId));
+                await e.Message.RespondAsync(GetMeme(serverId, "", memeId));
                 logger.LogInformation("User fetched a meme");
             }
 
@@ -97,7 +99,7 @@ namespace DiscordBot
             else if (e.Message.Content.StartsWith("!meme get", StringComparison.OrdinalIgnoreCase))
             {
                 string searchText = e.Message.Content.Replace("!meme get", "").Trim();
-                await e.Message.RespondAsync(GetMeme(searchText, -1));
+                await e.Message.RespondAsync(GetMeme(serverId, searchText, -1));
                 logger.LogInformation("User fetched a meme");
             }
 
@@ -113,7 +115,7 @@ namespace DiscordBot
                 }
                 catch (Exception) { }
 
-                await e.Message.RespondAsync(InsertMeme(memeToInsert, imageUrl, messageAuthor));
+                await e.Message.RespondAsync(InsertMeme(serverId, memeToInsert, imageUrl, messageAuthor));
                 logger.LogInformation("User inserted a meme");
             }
 
@@ -132,7 +134,7 @@ namespace DiscordBot
                 string textToTag = findTextToTag.Groups[0].Value;
                 string tagToApply = findTagToApply.Groups[0].Value;
 
-                await e.Message.RespondAsync(InsertAutoTag(textToTag, tagToApply));
+                await e.Message.RespondAsync(InsertAutoTag(serverId, textToTag, tagToApply));
                 logger.LogInformation("User added an auto tag.");
             }
 
@@ -142,7 +144,7 @@ namespace DiscordBot
                 string helpInfo = "Tag memes to make them much easier to find! For the latest tagging-related commands, type !meme. "
                                 + "\n\n**Auto Tagging** applies tags to existing AND future memes. For example, this is a powerful way to account for name changes over time. Here is a list of current auto tags:"
                                 + "\n\n__Tag  --  list of text(s) that will cause tag to be applied __ "
-                                + "\n```" + GetAutoTagConfiguration() + "```";
+                                + "\n```" + GetAutoTagConfiguration(serverId) + "```";
 
                 await e.Message.RespondAsync(helpInfo);
                 logger.LogInformation("User fetched tag-related info");
@@ -151,7 +153,7 @@ namespace DiscordBot
             // When the user has entered an invalid/unknown command for this bot. 
             else if (e.Message.Content.StartsWith("!meme", StringComparison.OrdinalIgnoreCase))
             {
-                string helpInfo = "<Bleep, Bloop>. My purpose is to archive memes. Version " + botVersion + ", by @Alex B."
+                string helpInfo = "<Bleep, Bloop>. My purpose is to archive memes in "+ e.Guild.Name +". Version " + botVersion + ", by @Alex B#4257."
                                 + "\n\n**Adding and getting memes**"
                                 + "```!meme add <text>  --  Adds a meme to the archive.  If an image is attached, it will be stored with the meme! "
                                 + "\n!meme get <text>  --  Searches memes (by the content AND tags!) and returns up to five.* "
@@ -159,7 +161,8 @@ namespace DiscordBot
                                 + "* Please note, some text in ffxiv is 'custom' and can be displayed only in ffxiv.  Such text will be removed by this bot because Discord (and other programs) cannot show it."
                                 + "\n\n**Tagging memes**"
                                 + "```!meme tag  --  Get tag statistics and show tag-specific help menu."
-                                + "\n!meme tag text=\"<text>\" tag=\"<text>\"  --  Adds the specific tag to all memes where the text is found.  Applies to existing memes as well as future memes.```";
+                                + "\n!meme tag text=\"<text>\" tag=\"<text>\"  --  Adds the specific tag to all memes where the text is found.  Applies to existing memes as well as future memes.```"
+                                + "\nDiagnostic: Guild Id = " + serverId.ToString(); 
 
                 await e.Message.RespondAsync(helpInfo);
                 logger.LogInformation("User fetched help info");
@@ -174,7 +177,7 @@ namespace DiscordBot
             return text;
         }
 
-        private static string InsertAutoTag(string textToTag, string tagToApply)
+        private static string InsertAutoTag(string serverId, string textToTag, string tagToApply)
         {
             int wasInserted = -1, autoTagId = -1;
 
@@ -184,6 +187,7 @@ namespace DiscordBot
                 using (SqlCommand cmd = new SqlCommand(spName))
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new SqlParameter("@ServerId", serverId));
                     cmd.Parameters.Add(new SqlParameter("@TextToTag", textToTag));
                     cmd.Parameters.Add(new SqlParameter("@TagToApply", tagToApply));
                     cmd.Connection = con;
@@ -214,7 +218,7 @@ namespace DiscordBot
 
         // Inserts a meme into storage.  The back-end logic is start enough to not insert duplicates.
         // The function returns the 'conclusion' (whether the meme was inserted, was already present)
-        private static string InsertMeme(string newMeme, string imageUrl, string author)
+        private static string InsertMeme(string serverId, string newMeme, string imageUrl, string author)
         {
             int wasInserted = -1, memeId = -1;
             using (SqlConnection con = new SqlConnection(connString))
@@ -223,6 +227,7 @@ namespace DiscordBot
                 using (SqlCommand cmd = new SqlCommand(spName))
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new SqlParameter("@ServerId", serverId));
                     cmd.Parameters.Add(new SqlParameter("@MemeText", CleanStringForDiscord(newMeme) ));
                     cmd.Parameters.Add(new SqlParameter("@MemeImageUrl", imageUrl));
                     cmd.Parameters.Add(new SqlParameter("@MemeAddedBy", author));
@@ -254,7 +259,7 @@ namespace DiscordBot
         }
 
         // Returns the automatic tagging configuration.
-        private static string GetAutoTagConfiguration()
+        private static string GetAutoTagConfiguration(string serverId)
         {
             string allConfigs = "";
             string tagsToApply, listOfTextsToApplyTag;
@@ -265,6 +270,7 @@ namespace DiscordBot
                 using (SqlCommand cmd = new SqlCommand(spName))
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new SqlParameter("@ServerId", serverId));
                     cmd.Connection = con;
                     con.Open();
                     using (SqlDataReader sdr = cmd.ExecuteReader())
@@ -293,7 +299,7 @@ namespace DiscordBot
         }
 
         // Returns up to a certain number of memes that match the search criteria. 
-        private static string GetMeme(string searchText, int specificMemeId)
+        private static string GetMeme(string serverId, string searchText, int specificMemeId)
         {
             string allMemes = "";
             string memeEntry, memeText, memeAddedBy, memeId, memeListOfTags, memeImageUrl;
@@ -306,6 +312,7 @@ namespace DiscordBot
                 using (SqlCommand cmd = new SqlCommand(spName))
                 {
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.Parameters.Add(new SqlParameter("@ServerId", serverId));
                     cmd.Parameters.Add(new SqlParameter("@SearchText", searchText));
                     cmd.Parameters.Add(new SqlParameter("@MemeId", specificMemeId));
                     cmd.Connection = con;
